@@ -212,4 +212,24 @@ describe "FTPUtils" do
       FTPUtils.rm_r "dir"
     end
   end
+
+  describe "Create a directory and all its parents" do
+    it "should work on an FTP URI" do
+      mock_connection = mock(Net::FTPFXP)
+      mock_uri = mock(FTPUtils::FTPURI, :connection => mock_connection, :path => "/subdir1/subdir2")
+      FTPUtils::FTPURI.should_receive(:new).with("ftp://admin:test@host1/subdir1/subdir2").and_return(mock_uri)
+      mock_connection.should_receive(:mkdir).with("subdir1")
+      mock_connection.should_receive(:chdir).with("subdir1")
+      mock_connection.should_receive(:mkdir).with("subdir2")
+      mock_connection.should_receive(:chdir).with("subdir2")
+
+      FTPUtils.mkdir_p "ftp://admin:test@host1/subdir1/subdir2"
+    end
+
+    it "should fall back on FileUtils for a non-FTP URI" do
+      FileUtils.should_receive(:mkdir_p).with("subdir1/subdir2")
+
+      FTPUtils.mkdir_p("subdir1/subdir2")
+    end
+  end
 end
