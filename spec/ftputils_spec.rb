@@ -195,5 +195,21 @@ describe "FTPUtils" do
 
       FTPUtils.rm_r "ftp://admin:test@host1/subdir1"
     end
+
+    it "should remove a file" do
+      mock_connection = mock(Net::FTPFXP)
+      mock_uri = mock(FTPUtils::FTPURI, :directory => false, :folder => "/subdir1", :filename => "file.txt",
+        :connection => mock_connection)
+      FTPUtils::FTPURI.should_receive(:new).with("ftp://admin:test@host1/subdir1/file.txt").and_return(mock_uri)
+      FTPUtils.should_receive(:rm).with("ftp://admin:test@host1/subdir1/file.txt")
+
+      FTPUtils.rm_r "ftp://admin:test@host1/subdir1/file.txt"
+    end
+
+    it "should fall back on FileUtils.rm_r if a non-FTP URI is provided" do
+      FileUtils.should_receive(:rm_r).with("dir")
+
+      FTPUtils.rm_r "dir"
+    end
   end
 end
