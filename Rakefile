@@ -5,11 +5,12 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "ftputils"
-    gem.summary = %Q{TODO: one-line summary of your gem}
-    gem.description = %Q{TODO: longer description of your gem}
+    gem.summary = %Q{Like FileUtils for FTP}
+    gem.description = %Q{Implements a subset of the methods in FileUtils for FTP URIs, falling back on FileUtils when a path doesn't look like FTP}
     gem.email = "bmarzolf@systemsbiology.org"
     gem.homepage = "http://github.com/bmarzolf/ftputils"
     gem.authors = ["Bruz Marzolf"]
+    gem.add_dependency "ftpfxp", ">= 0.0.4"
     gem.add_development_dependency "rspec", ">= 1.2.9"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end
