@@ -56,7 +56,7 @@ class FTPUtils
       ftp.connection.chdir ftp.folder
       ftp.connection.delete ftp.filename
     else
-      File.rm path
+      FileUtils.rm path
     end
   end
 
@@ -65,26 +65,10 @@ class FTPUtils
     rm(src)
   end
 
-  def self.is_dir?(path)
-    if ftp_url?(path)
-      ftp = FTPURI.new(path)
-      
-      begin
-        ftp.connection.chdir ftp.path
-
-        return true
-      rescue
-        return false
-      end
-    else
-      File.directory? path
-    end
-  end
-
   def self.rm_r(path)
     if ftp_url?(path)
-      if is_dir?(path)
-        ftp = FTPURI.new(path)
+      ftp = FTPURI.new(path)
+      if ftp.directory 
         files = ftp.connection.nlst
         
         files.each {|file| rm_r "#{path}/#{file}"}
@@ -123,5 +107,21 @@ class FTPUtils
   def self.ftp_url?(str)
     str.match(/^ftp:\/\//i) ? true : false
   end
+
+#  def self.is_dir?(path)
+#    if ftp_url?(path)
+#      ftp = FTPURI.new(path)
+#      
+#      begin
+#        ftp.connection.chdir ftp.path
+#
+#        return true
+#      rescue
+#        return false
+#      end
+#    else
+#      File.directory? path
+#    end
+#  end
 
 end

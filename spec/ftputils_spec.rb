@@ -140,4 +140,60 @@ describe "FTPUtils" do
       end
     end
   end
+  
+  describe "Removing a file" do
+    it "should remove an FTP directory" do
+      mock_connection = mock(Net::FTPFXP)
+      mock_uri = mock(FTPUtils::FTPURI, :directory => false, :folder => "/subdir1", :filename => "file.txt",
+        :connection => mock_connection)
+      FTPUtils::FTPURI.should_receive(:new).with("ftp://admin:test@host1/subdir1/file.txt").and_return(mock_uri)
+      mock_connection.should_receive(:chdir).with("/subdir1")
+      mock_connection.should_receive(:delete).with("file.txt")
+
+      FTPUtils.rm "ftp://admin:test@host1/subdir1/file.txt"
+    end
+
+    it "should raise an error if an FTP directory is provided" do
+      mock_connection = mock(Net::FTPFXP)
+      mock_uri = mock(FTPUtils::FTPURI, :directory => true, :folder => "/subdir1", :filename => nil)
+      FTPUtils::FTPURI.should_receive(:new).with("ftp://admin:test@host1/subdir1").and_return(mock_uri)
+
+      lambda do
+        FTPUtils.rm "ftp://admin:test@host1/subdir1"
+      end.should raise_error("Can't use FTPUtils.rm on directories. Instead use FTPUtils.rm_r")
+    end
+
+    it "should fall back on FileUtils.rm if an FTP URI is not provided" do
+      FileUtils.should_receive(:rm).with("file.txt")
+
+      FTPUtils.rm "file.txt"
+    end
+  end
+
+  describe "Removing recursively" do
+    it "should remove a directory with nested folders and files" do
+      mock_connection = mock(Net::FTPFXP)
+      mock_uri = mock(FTPUtils::FTPURI, :directory => true, :path => "/subdir1",
+        :connection => mock_connection)
+      FTPUtils::FTPURI.should_receive(:new).with("ftp://admin:test@host1/subdir1").and_return(mock_uri)
+      mock_connection.should_receive(:nlst).and_return( ["subdir2", "file.txt"] )
+
+      mock_subdir_connection = mock(Net::FTPFXP)
+      mock_subdir_uri = mock(FTPUtils::FTPURI, :directory => true, :path => "/subdir1/subdir2",
+        :connection => mock_subdir_connection)
+      FTPUtils::FTPURI.should_receive(:new).with("ftp://admin:test@host1/subdir1/subdir2").and_return(mock_subdir_uri)
+      mock_subdir_connection.should_receive(:nlst).and_return( [] )
+      mock_subdir_connection.should_receive(:rmdir).with("/subdir1/subdir2")
+
+      mock_file_connection = mock(Net::FTPFXP)
+      mock_file_uri = mock(FTPUtils::FTPURI, :directory => false, :path => "/subdir1/file.txt",
+        :connection => mock_file_connection)
+      FTPUtils::FTPURI.should_receive(:new).with("ftp://admin:test@host1/subdir1/file.txt").and_return(mock_file_uri)
+      FTPUtils.should_receive(:rm).with("ftp://admin:test@host1/subdir1/file.txt")
+
+      mock_connection.should_receive(:rmdir).with("/subdir1")
+
+      FTPUtils.rm_r "ftp://admin:test@host1/subdir1"
+    end
+  end
 end
