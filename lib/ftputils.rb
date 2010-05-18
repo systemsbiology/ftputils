@@ -99,7 +99,31 @@ class FTPUtils
   end
 
   def self.cp_r(src, dest, options = {})
-  
+    # handle all combinations of copying to/from FTP and local files
+    if ftp_url?(src)
+      src_ftp = FTPURI.new(src)
+      if src_ftp.directory 
+        mkdir_p dest
+
+        files = src_ftp.connection.nlst
+        files.each {|file| cp_r "#{src}/#{file}", "#{dest}/#{file}", options}
+      else
+        cp(src, dest, options)
+      end
+    elsif ftp_url?(dest)
+      dest_ftp = FTPURI.new(dest)
+
+      if File.directory?(src)
+        mkdir_p dest
+
+        files = Dir.entries(src)
+        files.each {|file| cp_r "#{src}/#{file}", "#{dest}/#{file}", options}
+      else
+        cp(src, dest, options)
+      end
+    else
+      FileUtils.cp_r src, dest
+    end
   end
 
   private
@@ -107,21 +131,5 @@ class FTPUtils
   def self.ftp_url?(str)
     str.match(/^ftp:\/\//i) ? true : false
   end
-
-#  def self.is_dir?(path)
-#    if ftp_url?(path)
-#      ftp = FTPURI.new(path)
-#      
-#      begin
-#        ftp.connection.chdir ftp.path
-#
-#        return true
-#      rescue
-#        return false
-#      end
-#    else
-#      File.directory? path
-#    end
-#  end
 
 end
