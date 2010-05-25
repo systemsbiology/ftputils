@@ -6,10 +6,6 @@ rescue LoadError
 end
 
 require 'fileutils'
-require 'ftputils/ext/class'
-require 'ftputils/ftpconnection'
-require 'ftputils/ftpuri'
-require 'ftputils/ftpfile'
 require 'open-uri'
 
 class FTPUtils
@@ -19,7 +15,7 @@ class FTPUtils
     when [true, true]
       raise "src should be a filename, not a directory" if FTPFile.directory?(src)
 
-      dest_path = FTPFile.dirname(dest) + "/" + ( FTPFile.filename(dest) || FTPFile.filename(src) )
+      dest_path = FTPFile.dirname(dest) + "/" + ( FTPFile.basename(dest) || FTPFile.basename(src) )
       FTPConnection.connect(src).fxpto(FTPConnection.connect(dest), dest_path, FTPFile.relative_path(src))
     when [true, false]
       raise "src should be a filename, not a directory" if FTPFile.directory?(src)
@@ -133,3 +129,8 @@ class FTPUtils
   end
 
 end
+
+require 'ftputils/ext/class'
+require 'ftputils/ftpconnection'
+require 'ftputils/ftpuri'
+require 'ftputils/ftpfile'

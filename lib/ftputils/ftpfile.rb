@@ -2,7 +2,7 @@ class FTPUtils
   class FTPFile
 
     def self.basename(path, suffix=nil)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         if suffix
           return ftp_uri.filename.gsub!(/#{suffix}\Z/,'')
         else
@@ -18,7 +18,7 @@ class FTPUtils
     end
 
     def self.directory?(path)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         begin
           connection = FTPUtils::FTPConnection.connect(path)
           connection.chdir(ftp_uri.path)
@@ -33,7 +33,7 @@ class FTPUtils
     end
 
     def self.dirname(path)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         return ftp_uri.dirname
       else
         return File.dirname(path)
@@ -41,7 +41,7 @@ class FTPUtils
     end
 
     def self.exists?(path)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         connection = FTPUtils::FTPConnection.connect(path)
         connection.chdir ftp_uri.dirname
         if connection.size(ftp_uri.filename) > 0
@@ -55,7 +55,7 @@ class FTPUtils
     end
 
     def self.expand_path(path)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         return path
       else
         return File.expand_path(path)
@@ -63,7 +63,7 @@ class FTPUtils
     end
 
     def self.file?(path)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         connection = FTPUtils::FTPConnection.connect(path)
         connection.chdir(ftp_uri.dirname)
 
@@ -79,7 +79,7 @@ class FTPUtils
     end
 
     def self.mtime(path)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         connection = FTPUtils::FTPConnection.connect(path)
         connection.chdir(ftp_uri.dirname)
 
@@ -94,7 +94,7 @@ class FTPUtils
     end
 
     def self.relative_path(path)
-      if ftp_uri = FTPUtils::FTPURI.new(path)
+      if ftp_uri = FTPUtils::FTPURI.parse(path)
         return ftp_uri.path
       else
         return nil

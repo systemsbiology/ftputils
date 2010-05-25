@@ -8,7 +8,7 @@ describe "FTPUtils" do
           and_return(false)
         FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host2/file2.txt").
           and_return("/")
-        FTPUtils::FTPFile.should_receive(:filename).with("ftp://admin:test@host2/file2.txt").
+        FTPUtils::FTPFile.should_receive(:basename).with("ftp://admin:test@host2/file2.txt").
           and_return("file2.txt")
 
         mock_src_connection = mock(FTPUtils::FTPConnection)
@@ -29,7 +29,7 @@ describe "FTPUtils" do
           and_return(false)
         FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host2/subdir2/file2.txt").
           and_return("/subdir2")
-        FTPUtils::FTPFile.should_receive(:filename).with("ftp://admin:test@host2/subdir2/file2.txt").
+        FTPUtils::FTPFile.should_receive(:basename).with("ftp://admin:test@host2/subdir2/file2.txt").
           and_return("file2.txt")
 
         mock_src_connection = mock(FTPUtils::FTPConnection)
@@ -50,9 +50,9 @@ describe "FTPUtils" do
           and_return(false)
         FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host2/subdir2").
           and_return("/subdir2")
-        FTPUtils::FTPFile.should_receive(:filename).with("ftp://admin:test@host2/subdir2").
+        FTPUtils::FTPFile.should_receive(:basename).with("ftp://admin:test@host2/subdir2").
           and_return(nil)
-        FTPUtils::FTPFile.should_receive(:filename).with("ftp://admin:test@host1/subdir1/file1.txt").
+        FTPUtils::FTPFile.should_receive(:basename).with("ftp://admin:test@host1/subdir1/file1.txt").
           and_return("file1.txt")
 
         mock_src_connection = mock(FTPUtils::FTPConnection)
