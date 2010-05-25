@@ -67,6 +67,7 @@ class FTPUtils
     if ftp_url?(path)
       if FTPFile.directory?(path) 
         connection = FTPConnection.connect(path)
+        connection.chdir FTPFile.relative_path(path)
 
         files = connection.nlst
         files.each {|file| rm_r "#{path}/#{file}"}
@@ -119,6 +120,21 @@ class FTPUtils
       end
     else
       FileUtils.cp_r src, dest
+    end
+  end
+
+  def self.ls(path)
+    if ftp_url?(path)
+      if FTPFile.directory?(path) 
+        connection = FTPConnection.connect(path)
+        connection.chdir FTPFile.relative_path(path)
+
+        return connection.nlst
+      else
+        nil
+      end
+    else
+      Dir.entries path
     end
   end
 

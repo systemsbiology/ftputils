@@ -218,6 +218,7 @@ describe "FTPUtils" do
       mock_connection = mock(FTPUtils::FTPConnection)
       FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1").
         and_return(mock_connection)
+      mock_connection.should_receive(:chdir).with("/subdir1")
       mock_connection.should_receive(:nlst).and_return( ["subdir2", "file.txt"] )
 
       FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1/subdir2").
@@ -225,8 +226,9 @@ describe "FTPUtils" do
       mock_subdir_connection = mock(FTPUtils::FTPConnection)
       FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1/subdir2").
         and_return(mock_subdir_connection)
+      mock_subdir_connection.should_receive(:chdir).with("/subdir1/subdir2")
       mock_subdir_connection.should_receive(:nlst).and_return( [] )
-      FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/subdir1/subdir2").
+      FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/subdir1/subdir2").twice.
         and_return("/subdir1/subdir2")
       mock_subdir_connection.should_receive(:rmdir).with("/subdir1/subdir2")
 
@@ -234,7 +236,7 @@ describe "FTPUtils" do
         and_return(false)
       FTPUtils.should_receive(:rm).with("ftp://admin:test@host1/subdir1/file.txt")
 
-      FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/subdir1").
+      FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/subdir1").twice.
         and_return("/subdir1")
       mock_connection.should_receive(:rmdir).with("/subdir1")
 
@@ -353,6 +355,33 @@ describe "FTPUtils" do
       FileUtils.should_receive(:cp_r).with("/home/me/subdir1", "/home/me/subdir2")
 
       FTPUtils.cp_r "/home/me/subdir1", "/home/me/subdir2"
+    end
+  end
+
+  describe "listing the entries in a directory" do
+    it "should return a list of entries in an FTP directory" do
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1").
+        and_return(true)
+      mock_connection = mock(FTPUtils::FTPConnection)
+      FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1").
+        and_return(mock_connection)
+      mock_connection.should_receive(:chdir).with("/subdir1")
+      mock_connection.should_receive(:nlst).and_return( ["subdir2", "file.txt"] )
+
+      FTPUtils.ls("ftp://admin:test@host1/subdir1").should == ["subdir2", "file.txt"]
+    end
+
+    it "should return nil for an FTP URI that isn't a directory" do
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/file.txt").
+        and_return(false)
+
+      FTPUtils.ls("ftp://admin:test@host1/file.txt").should == nil
+    end
+
+    it "should use Dir.entries for a non-FTP URI" do
+      Dir.should_receive(:entries).with("/home/me/subdir1")
+
+      FTPUtils.ls("/home/me/subdir1")
     end
   end
 end
