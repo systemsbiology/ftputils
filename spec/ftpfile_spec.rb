@@ -140,7 +140,7 @@ describe FTPUtils::FTPURI do
   end
 
   describe "determining the modification time of a file" do
-    it "should find the modificaiton of an FTP URI if it's a file" do
+    it "should find the modification of an FTP URI" do
       mock_uri = mock(FTPUtils::FTPURI, :dirname => "/path/to", :filename => "file.txt")
       FTPUtils::FTPURI.should_receive(:parse).with("ftp://admin:test@myhost/path/to/file.txt").and_return(mock_uri)
       mock_connection = mock(FTPUtils::FTPConnection)
@@ -149,17 +149,6 @@ describe FTPUtils::FTPURI do
       mock_connection.should_receive(:mtime).with("file.txt").and_return("10:10")
 
       FTPUtils::FTPFile.mtime("ftp://admin:test@myhost/path/to/file.txt").should == "10:10"
-    end
-
-    it "should return nil if the FTP URI provided is a directory" do
-      mock_uri = mock(FTPUtils::FTPURI, :dirname => "/path/to", :filename => "directory")
-      FTPUtils::FTPURI.should_receive(:parse).with("ftp://admin:test@myhost/path/to/directory").and_return(mock_uri)
-      mock_connection = mock(FTPUtils::FTPConnection)
-      FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@myhost/path/to/directory").and_return(mock_connection)
-      mock_connection.should_receive(:chdir).with("/path/to")
-      mock_connection.should_receive(:mtime).with("directory").and_raise(Net::FTPPermError)
-
-      FTPUtils::FTPFile.mtime("ftp://admin:test@myhost/path/to/directory").should be_nil
     end
 
     it "should use File.mtime if the path is not an FTP URI" do

@@ -83,11 +83,7 @@ class FTPUtils
         connection = FTPUtils::FTPConnection.connect(path)
         connection.chdir(ftp_uri.dirname)
 
-        begin
-          return connection.mtime(ftp_uri.filename)
-        rescue Net::FTPPermError
-          return nil
-        end
+        return connection.mtime(ftp_uri.filename)
       else
         return File.mtime path
       end
