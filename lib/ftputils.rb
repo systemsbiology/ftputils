@@ -7,41 +7,44 @@ end
 
 require 'fileutils'
 require 'ftputils/ext/class'
+require 'ftputils/ftpconnection'
 require 'ftputils/ftpuri'
+require 'ftputils/ftpfile'
+require 'open-uri'
 
 class FTPUtils
   def self.cp(src, dest, options = {})
     # handle all combinations of copying to/from FTP and local files
     case [ftp_url?(src), ftp_url?(dest)]
     when [true, true]
-      src_uri = FTPURI.new(src)
-      dest_uri = FTPURI.new(dest)
+      raise "src should be a filename, not a directory" if FTPFile.directory?(src)
 
-      raise "src should be a filename, not a directory" if src_uri.directory
-
-      dest_path = dest_uri.folder + "/" + (dest_uri.filename || src_uri.filename)
-      src_uri.connection.fxpto(dest_uri.connection, dest_path, src_uri.path)
+      dest_path = FTPFile.dirname(dest) + "/" + ( FTPFile.filename(dest) || FTPFile.filename(src) )
+      FTPConnection.connect(src).fxpto(FTPConnection.connect(dest), dest_path, FTPFile.relative_path(src))
     when [true, false]
-      src_uri = FTPURI.new(src)
-      raise "src should be a filename, not a directory" if src_uri.directory
+      raise "src should be a filename, not a directory" if FTPFile.directory?(src)
+
+      filename = FTPFile.basename(src)
 
       if File.directory? dest
-        dest += "/#{src_uri.filename}"
+        dest += "/#{filename}"
       end
 
-      src_uri.connection.chdir src_uri.folder
-      src_uri.connection.getbinaryfile src_uri.filename, dest, 1024
+      connection = FTPConnection.connect(src)
+      connection.chdir FTPFile.dirname(src)
+      connection.getbinaryfile filename, dest, 1024
     when [false, true]
       raise "src should be a filename, not a directory" if File.directory? src
 
-      dest_uri = FTPURI.new(dest)
+      dest_path = FTPFile.relative_path(dest)
 
-      if dest_uri.directory
-        dest_uri.path += "/#{File.basename(src)}"
+      if FTPFile.directory?(dest)
+        dest_path += "/#{File.basename(src)}"
       end
 
-      dest_uri.connection.chdir dest_uri.folder
-      dest_uri.connection.putbinaryfile src, dest_uri.path, 1024
+      connection = FTPConnection.connect(dest)
+      connection.chdir FTPFile.dirname(dest)
+      connection.putbinaryfile src, dest_path, 1024
     when [false, false]
       FileUtils.cp src, dest, options
     end
@@ -49,12 +52,11 @@ class FTPUtils
 
   def self.rm(path)
     if ftp_url?(path)
-      ftp = FTPURI.new(path)
-      
-      raise "Can't use FTPUtils.rm on directories. Instead use FTPUtils.rm_r" if ftp.directory
+      raise "Can't use FTPUtils.rm on directories. Instead use FTPUtils.rm_r" if FTPFile.directory?(path)
 
-      ftp.connection.chdir ftp.folder
-      ftp.connection.delete ftp.filename
+      connection = FTPConnection.connect(path)
+      connection.chdir FTPFile.dirname(path)
+      connection.delete FTPFile.basename(path)
     else
       FileUtils.rm path
     end
@@ -67,13 +69,13 @@ class FTPUtils
 
   def self.rm_r(path)
     if ftp_url?(path)
-      ftp = FTPURI.new(path)
-      if ftp.directory 
-        files = ftp.connection.nlst
-        
+      if FTPFile.directory?(path) 
+        connection = FTPConnection.connect(path)
+
+        files = connection.nlst
         files.each {|file| rm_r "#{path}/#{file}"}
 
-        ftp.connection.rmdir ftp.path
+        connection.rmdir FTPFile.relative_path(path)
       else
         rm(path)
       end
@@ -84,14 +86,14 @@ class FTPUtils
 
   def self.mkdir_p(path)
     if ftp_url?(path)
-      ftp = FTPURI.new(path)
-      
-      subdirs = ftp.path.split(/\//)
+      connection = FTPConnection.connect(path)
+
+      subdirs = FTPFile.relative_path(path).split(/\//)
       subdirs.each do |subdir|
         next if subdir == ""
 
-        ftp.connection.mkdir subdir
-        ftp.connection.chdir subdir
+        connection.mkdir subdir
+        connection.chdir subdir
       end
     else
       FileUtils.mkdir_p path
@@ -101,19 +103,17 @@ class FTPUtils
   def self.cp_r(src, dest, options = {})
     # handle all combinations of copying to/from FTP and local files
     if ftp_url?(src)
-      src_ftp = FTPURI.new(src)
-      if src_ftp.directory 
+      if FTPFile.directory?(src) 
         mkdir_p dest
 
-        files = src_ftp.connection.nlst
+        connection = FTPConnection.connect(src)
+        files = connection.nlst
         files.each {|file| cp_r "#{src}/#{file}", "#{dest}/#{file}", options}
       else
         cp(src, dest, options)
       end
     elsif ftp_url?(dest)
-      dest_ftp = FTPURI.new(dest)
-
-      if File.directory?(src)
+      if FTPFile.directory?(dest) 
         mkdir_p dest
 
         files = Dir.entries(src)
