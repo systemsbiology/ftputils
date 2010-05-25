@@ -23,6 +23,17 @@ describe FTPUtils::FTPConnection do
       FTPUtils::FTPConnection.connect("ftp://admin:test@myhost/path/to/directory")
     end
 
+    it "should establish a connection to a host without a directory name" do
+      mock_connection = mock(Net::FTPFXP)
+      Net::FTPFXP.should_receive(:new).and_return(mock_connection)
+      mock_connection.should_receive(:"passive=").with(true)
+      mock_connection.should_receive(:connect).with("myhost")
+      mock_connection.should_receive(:login).with("admin","test")
+      mock_connection.should_receive(:chdir).with("/")
+
+      FTPUtils::FTPConnection.connect("ftp://admin:test@myhost")
+    end
+
     it "should attempt to reconnect once if there is an error" do
       mock_connection = mock(Net::FTPFXP)
       Net::FTPFXP.should_receive(:new).and_return(mock_connection)

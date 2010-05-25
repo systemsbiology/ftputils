@@ -3,7 +3,7 @@ class FTPUtils
     cattr_accessor :connections
 
     def self.connect(uri)
-      if uri.match(/^ftp:\/\/(.*?):(.*?)@(.*?)(\/.*)*\/(.*)$/)
+      if uri.match(/^ftp:\/\/(.*?):(.*?)@(.*?)(\/.*)*$/)
         username = $1
         password = $2
         host = $3
