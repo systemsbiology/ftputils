@@ -69,6 +69,17 @@ describe FTPUtils::FTPURI do
       FTPUtils::FTPFile.exists?("ftp://admin:test@myhost/path/to/file.txt").should be_false
     end
 
+    it "should be false when Net::FTPPermError is raised" do
+      mock_uri = mock(FTPUtils::FTPURI, :path => "/path/to/file.txt", :dirname => "/path/to", :filename => "file.txt")
+      FTPUtils::FTPURI.should_receive(:parse).with("ftp://admin:test@myhost/path/to/file.txt").and_return(mock_uri)
+      mock_connection = mock(FTPUtils::FTPConnection)
+      FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@myhost/path/to/file.txt").and_return(mock_connection)
+      mock_connection.should_receive(:chdir).with("/path/to")
+      mock_connection.should_receive(:size).with("file.txt").and_raise(Net::FTPPermError)
+
+      FTPUtils::FTPFile.exists?("ftp://admin:test@myhost/path/to/file.txt").should be_false
+    end
+
     it "should pass the path to File.exists? if it's not an FTP URI" do
       FTPUtils::FTPURI.should_receive(:parse).with("/path/to/file.txt").and_return(nil)
       File.should_receive(:exists?)

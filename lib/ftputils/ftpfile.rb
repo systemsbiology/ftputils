@@ -44,9 +44,14 @@ class FTPUtils
       if ftp_uri = FTPUtils::FTPURI.parse(path)
         connection = FTPUtils::FTPConnection.connect(path)
         connection.chdir ftp_uri.dirname
-        if connection.size(ftp_uri.filename) > 0
-          return true
-        else
+
+        begin
+          if connection.size(ftp_uri.filename) > 0
+            return true
+          else
+            return false
+          end
+        rescue
           return false
         end
       else
