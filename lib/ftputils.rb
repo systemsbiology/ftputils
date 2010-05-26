@@ -9,6 +9,7 @@ require 'fileutils'
 require 'open-uri'
 
 class FTPUtils
+
   def self.cp(src, dest, options = {})
     # handle all combinations of copying to/from FTP and local files
     case [ftp_url?(src), ftp_url?(dest)]
@@ -40,7 +41,12 @@ class FTPUtils
 
       connection = FTPConnection.connect(dest)
       connection.chdir FTPFile.dirname(dest)
-      connection.putbinaryfile src, dest_path, 1024
+
+      begin
+        connection.putbinaryfile src, dest_path, 1024
+      rescue Net::FTPPermError
+        raise "Unable to copy #{src} to #{dest_path}, possibly due to FTP server permissions"
+      end
     when [false, false]
       FileUtils.cp src, dest, options
     end

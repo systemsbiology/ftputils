@@ -163,6 +163,25 @@ describe "FTPUtils" do
         FTPUtils.cp "/home/me/file1.txt", "ftp://admin:test@host2"
       end
 
+      it "should provide an informative error message if the file can't be uploaded" do
+        File.should_receive(:directory?).with("/home/me/file1.txt").and_return(false)
+        FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host2/file2.txt").
+          and_return("/file2.txt")
+        FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host2/file2.txt").
+          and_return(false)
+        mock_dest_connection = mock(FTPUtils::FTPConnection)
+        FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host2/file2.txt").
+          and_return(mock_dest_connection)
+        FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host2/file2.txt").and_return("/")
+        mock_dest_connection.should_receive(:chdir).with("/")
+        mock_dest_connection.should_receive(:putbinaryfile).with("/home/me/file1.txt", "/file2.txt", 1024).
+          and_raise(Net::FTPPermError)
+
+        lambda do
+          FTPUtils.cp "/home/me/file1.txt", "ftp://admin:test@host2/file2.txt"
+        end.should raise_error("Unable to copy /home/me/file1.txt to /file2.txt, possibly due to FTP server permissions")
+      end
+
       it "should raise an error if the source file is a directory" do
         File.should_receive(:directory?).with("/home/me").and_return(true)
 
