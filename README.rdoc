@@ -1,6 +1,6 @@
-= ftputils
+= FTPUtils
 
-Description goes here.
+FTPUtils attempts to reproduce a subset of the methods provided by FileUtils and File for FTP URIs, using Net::FTP. While it has decent coverage by Rspec specs, it has only been tested under conditions specific to what it was developed for and will very likely need more work to be generally useful.
 
 == Note on Patches/Pull Requests
  
