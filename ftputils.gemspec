@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{ftputils}
-  s.version = "0.2.0"
+  s.version = "0.2.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Bruz Marzolf"]
-  s.date = %q{2011-04-19}
+  s.date = %q{2011-06-20}
   s.description = %q{Implements a subset of the methods in FileUtils for FTP URIs, falling back on FileUtils when a path doesn't look like FTP}
   s.email = %q{bmarzolf@systemsbiology.org}
   s.extra_rdoc_files = [
@@ -18,10 +18,12 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     ".document",
+    "CHANGELOG.rdoc",
     "LICENSE",
     "README.rdoc",
     "Rakefile",
     "VERSION",
+    "ftputils.gemspec",
     "lib/ftputils.rb",
     "lib/ftputils/ext/class.rb",
     "lib/ftputils/ftpconnection.rb",

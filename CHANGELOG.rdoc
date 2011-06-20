@@ -1,0 +1,12 @@
+= Change Log
+
+== 0.2.1
+
+* Add timeouts to FTPUtils and FTPConnection methods. Defaults to 5 minutes,
+but can be set with FTPUtils.timeout_period=(seconds).
+
+== 0.2.0
+
+* Major internal refactoring, pulling FTPConnection out of FTPURI
+* Add FTPFile, which implements a subset of the File API for FTP URIs
+* Add FTPUtils.ls
