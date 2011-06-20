@@ -52,5 +52,17 @@ describe FTPUtils::FTPConnection do
         FTPUtils::FTPConnection.connect("ftp://admin:test@myhost/path/to/file.txt")
       end.should raise_error(Net::FTPPermError)
     end
+
+    it "should raise an error if connecting takes too long" do
+      FTPUtils.timeout_period = 0.1
+
+      Net::FTPFXP.should_receive(:new) do
+        sleep 1
+      end
+
+      lambda do
+        FTPUtils::FTPConnection.connect("ftp://admin:test@myhost/path/to/file.txt")
+      end.should raise_error("Connecting to ftp://admin:test@myhost/path/to/file.txt timed out after 0.1 seconds")
+    end
   end
 end

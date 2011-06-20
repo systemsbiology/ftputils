@@ -76,6 +76,33 @@ describe "FTPUtils" do
           FTPUtils.cp "ftp://admin:test@host1/subdir1", "ftp://admin:test@host2/subdir2"
         end.should raise_error("src should be a filename, not a directory")
       end
+
+      it "should time out a transfer that takes too long" do
+        FTPUtils.timeout_period = 0.1
+
+        FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/file1.txt").
+          and_return(false)
+        FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host2/file2.txt").
+          and_return("/")
+        FTPUtils::FTPFile.should_receive(:basename).with("ftp://admin:test@host2/file2.txt").
+          and_return("file2.txt")
+
+        mock_src_connection = mock(FTPUtils::FTPConnection)
+        FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/file1.txt").
+          and_return(mock_src_connection)
+        mock_dest_connection = mock(FTPUtils::FTPConnection)
+        FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host2/file2.txt").
+          and_return(mock_dest_connection)
+        FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/file1.txt").
+          and_return("/file1.txt")
+        mock_src_connection.should_receive(:fxpto).with(mock_dest_connection, "//file2.txt", "/file1.txt") do
+          sleep 1
+        end
+
+        lambda do
+          FTPUtils.cp "ftp://admin:test@host1/file1.txt", "ftp://admin:test@host2/file2.txt"
+        end.should raise_error("Copying ftp://admin:test@host1/file1.txt to ftp://admin:test@host2/file2.txt timed out after 0.1 seconds")
+      end
     end
 
     describe "from FTP to the local filesystem" do
@@ -117,6 +144,32 @@ describe "FTPUtils" do
         mock_src_connection.should_receive(:getbinaryfile).with("file1.txt", "/home/me/file1.txt", 1024)
 
         FTPUtils.cp "ftp://admin:test@host1/subdir1/file1.txt", "/home/me"
+      end
+
+      it "should time out a transfer that takes too long" do
+        FTPUtils.timeout_period = 0.1
+
+        FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1/file1.txt").
+          and_return(false)
+
+        FTPUtils::FTPFile.should_receive(:basename).with("ftp://admin:test@host1/subdir1/file1.txt").
+          and_return("file1.txt")
+
+        File.should_receive(:directory?).with("/home/me/file2.txt").and_return(false)
+
+        mock_src_connection = mock(FTPUtils::FTPConnection)
+        FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1/file1.txt").
+          and_return(mock_src_connection)
+        FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host1/subdir1/file1.txt").
+          and_return("/subdir1")
+        mock_src_connection.should_receive(:chdir).with("/subdir1")
+        mock_src_connection.should_receive(:getbinaryfile).with("file1.txt", "/home/me/file2.txt", 1024) do
+          sleep 1
+        end
+
+        lambda do
+          FTPUtils.cp "ftp://admin:test@host1/subdir1/file1.txt", "/home/me/file2.txt"
+        end.should raise_error("Copying ftp://admin:test@host1/subdir1/file1.txt to /home/me/file2.txt timed out after 0.1 seconds")
       end
 
       it "should raise an error if the source URI is a directory" do
@@ -179,7 +232,29 @@ describe "FTPUtils" do
 
         lambda do
           FTPUtils.cp "/home/me/file1.txt", "ftp://admin:test@host2/file2.txt"
-        end.should raise_error("Unable to copy /home/me/file1.txt to /file2.txt, possibly due to FTP server permissions")
+        end.should raise_error("Unable to copy /home/me/file1.txt to ftp://admin:test@host2/file2.txt, possibly due to FTP server permissions")
+      end
+
+      it "should time out a transfer that takes too long" do
+        FTPUtils.timeout_period = 0.1
+
+        File.should_receive(:directory?).with("/home/me/file1.txt").and_return(false)
+        FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host2/file2.txt").
+          and_return("/file2.txt")
+        FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host2/file2.txt").
+          and_return(false)
+        mock_dest_connection = mock(FTPUtils::FTPConnection)
+        FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host2/file2.txt").
+          and_return(mock_dest_connection)
+        FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host2/file2.txt").and_return("/")
+        mock_dest_connection.should_receive(:chdir).with("/")
+        mock_dest_connection.should_receive(:putbinaryfile).with("/home/me/file1.txt", "/file2.txt", 1024) do
+          sleep 1
+        end
+
+        lambda do
+          FTPUtils.cp "/home/me/file1.txt", "ftp://admin:test@host2/file2.txt"
+        end.should raise_error("Copying /home/me/file1.txt to ftp://admin:test@host2/file2.txt timed out after 0.1 seconds")
       end
 
       it "should raise an error if the source file is a directory" do
@@ -228,6 +303,25 @@ describe "FTPUtils" do
 
       FTPUtils.rm "file.txt"
     end
+
+    it "should time out a removal that takes too long" do
+      FTPUtils.timeout_period = 0.1
+
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1/file.txt").
+        and_return(false)
+      mock_connection = mock(FTPUtils::FTPConnection)
+      FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1/file.txt").
+        and_return(mock_connection)
+      FTPUtils::FTPFile.should_receive(:dirname).with("ftp://admin:test@host1/subdir1/file.txt").and_return("/subdir1")
+      mock_connection.should_receive(:chdir).with("/subdir1")
+      mock_connection.should_receive(:delete).with("file.txt") do
+        sleep 1
+      end
+
+      lambda do
+        FTPUtils.rm "ftp://admin:test@host1/subdir1/file.txt"
+      end.should raise_error("Removing ftp://admin:test@host1/subdir1/file.txt timed out after 0.1 seconds")
+    end
   end
 
   describe "removing recursively" do
@@ -275,6 +369,43 @@ describe "FTPUtils" do
 
       FTPUtils.rm_r "dir"
     end
+
+    it "should time out a removal that takes too long" do
+      FTPUtils.timeout_period = 0.1
+
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1").
+        and_return(true)
+      mock_connection = mock(FTPUtils::FTPConnection)
+      FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1").
+        and_return(mock_connection)
+      mock_connection.should_receive(:chdir).with("/subdir1")
+      mock_connection.should_receive(:nlst).and_return( ["subdir2", "file.txt"] )
+
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1/subdir2").
+        and_return(true)
+      mock_subdir_connection = mock(FTPUtils::FTPConnection)
+      FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1/subdir2").
+        and_return(mock_subdir_connection)
+      mock_subdir_connection.should_receive(:chdir).with("/subdir1/subdir2")
+      mock_subdir_connection.should_receive(:nlst).and_return( [] )
+      FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/subdir1/subdir2").twice.
+        and_return("/subdir1/subdir2")
+      mock_subdir_connection.should_receive(:rmdir).with("/subdir1/subdir2")
+
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1/file.txt").
+        and_return(false)
+      FTPUtils.should_receive(:rm).with("ftp://admin:test@host1/subdir1/file.txt")
+
+      FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/subdir1").twice.
+        and_return("/subdir1")
+      mock_connection.should_receive(:rmdir).with("/subdir1") do
+        sleep 1
+      end
+
+      lambda do
+        FTPUtils.rm_r "ftp://admin:test@host1/subdir1"
+      end.should raise_error("Removing ftp://admin:test@host1/subdir1 timed out after 0.1 seconds")
+    end
   end
 
   describe "create a directory and all its parents" do
@@ -298,6 +429,25 @@ describe "FTPUtils" do
       FileUtils.should_receive(:mkdir_p).with("subdir1/subdir2")
 
       FTPUtils.mkdir_p("subdir1/subdir2")
+    end
+
+    it "should time out a creation that takes too long" do
+      FTPUtils.timeout_period = 0.1
+
+      mock_connection = mock(FTPUtils::FTPConnection)
+      FTPUtils::FTPConnection.should_receive(:connect).with("ftp://admin:test@host1/subdir1/subdir2").
+        and_return(mock_connection)
+
+      FTPUtils::FTPFile.should_receive(:relative_path).with("ftp://admin:test@host1/subdir1/subdir2").
+        and_return("/subdir1/subdir2")
+
+      mock_connection.should_receive(:mkdir).with("subdir1") do
+        sleep 1
+      end
+
+      lambda do
+        FTPUtils.mkdir_p "ftp://admin:test@host1/subdir1/subdir2"
+      end.should raise_error("Creating ftp://admin:test@host1/subdir1/subdir2 timed out after 0.1 seconds")
     end
   end
 
@@ -375,6 +525,18 @@ describe "FTPUtils" do
 
       FTPUtils.cp_r "/home/me/subdir1", "/home/me/subdir2"
     end
+
+    it "should time out a copy that takes too long" do
+      FTPUtils.timeout_period = 0.1
+
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1") do
+        sleep 1
+      end
+
+      lambda do
+        FTPUtils.cp_r "ftp://admin:test@host1/subdir1", "ftp://admin:test@host2/subdir2"
+      end.should raise_error("Copying ftp://admin:test@host1/subdir1 to ftp://admin:test@host2/subdir2 timed out after 0.1 seconds")
+    end
   end
 
   describe "listing the entries in a directory" do
@@ -401,6 +563,18 @@ describe "FTPUtils" do
       Dir.should_receive(:entries).with("/home/me/subdir1")
 
       FTPUtils.ls("/home/me/subdir1")
+    end
+
+    it "should time out a directory listing that takes too long" do
+      FTPUtils.timeout_period = 0.1
+
+      FTPUtils::FTPFile.should_receive(:directory?).with("ftp://admin:test@host1/subdir1") do
+        sleep 1
+      end
+
+      lambda do
+        FTPUtils.ls("ftp://admin:test@host1/subdir1")
+      end.should raise_error("Listing ftp://admin:test@host1/subdir1 timed out after 0.1 seconds")
     end
   end
 end
