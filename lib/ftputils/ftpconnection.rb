@@ -41,14 +41,15 @@ class FTPUtils
     def self.establish_connection(host, username, password, reload = false)
       self.connections ||= Hash.new
 
-      return connections[host] if connections[host] && !reload
+      connection_key = "#{username}@#{host}"
+      return connections[connection_key] if connections[connection_key] && !reload
 
       connection = Net::FTPFXP.new
       connection.passive = true
       connection.connect(host)
       connection.login(username, password) if username && password
 
-      connections[host] = connection
+      connections[connection_key] = connection
 
       return connection
     end
